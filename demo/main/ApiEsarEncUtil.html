@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encriptador AforeWeb</title>
+    <script>
+        const tableData = [
+            { bundle: "Aforemovil", id: "f3D2babe6dF39c71", keyId: "UCNbeRgsxpVaCPWx", mwId: '-f6H6w6x451R2$9X4m4Y' },
+            { bundle: 'AforeWeb', id: 'DhJkLp9046EtdS25', keyId: 'FghEuil904J576Jm', mwId: '-f6H6w6x451R2$9X4m4Y' },
+            { bundle: "Citi", keyId: "oYCGHooasZLmEfbP", id: "Cd2b1bbfB5BAf06A", mwId: '-f6H6w6x451R2$9X4m4Y' }
+        ]
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"
+        integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <style>
+        .night {
+            background-color: #666 !important;
+            color: #EEE !important;
+        }
+    </style>
+</head>
+
+<body style="background-color: #333;color: #FE8;">
+    <section class="container-fluid">
+        <div class="row">
+            <div class="col">
+                <div class="row">
+                    <div class="col">
+                        <label for="bundle" class="col-form-label">Bundle: </label>
+                        <select name="bundle" class="form-select night" id="bundle">
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label for="dataType" class="col-form-label">Tipo de dato: </label>
+                        <select name="dataType" class="form-select night" id="dataType">
+                            <option value="0">API payload</option>
+                            <option value="1">Middleware payload</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label for="complement" class="col-form-label">Secret key: </label>
+                        <select name="complement" class="form-select night" id="complement">
+                            <option value="0">Default</option>
+                            <option value="1">Desde request</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row fromRequest">
+                    <div class="col">
+                        <label for="dateTime" class="col-form-label">date-time: </label>
+                        <input type="text" class="form-control night" id="dateTime">
+                    </div>
+                    <div class="col">
+                        <label for="uuid" class="col-form-label">uuid: </label>
+                        <input type="text" class="form-control night" id="uuid">
+                    </div>
+                    <div class="col">
+                        <label for="geolocation" class="col-form-label">geo-location: </label>
+                        <input type="text" class="form-control night" id="geolocation">
+                    </div>
+                </div>
+                <div class="row fromRequest">
+                    <div class="col">
+                        <label for="requestSecret" class="col-form-label">Secret-id / mdlwSecret: </label>
+                        <input type="text" class="form-control night" id="requestSecret">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label for="compositeKey" class="col-form-label">Llave: </label>
+                        <input type="text" class="form-control night" id="compositeKey" readonly>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label for="action" class="col-form-label">Acción: </label>
+                        <select name="action" class="form-select night" id="action">
+                            <option value="0">Encriptar</option>
+                            <option value="1" selected>Desencriptar</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="row ">
+                    <div class="col">
+                        <label for="rawData" class="form-label">Cadena:</label>
+                        <textarea class="form-control night" name="rawData" id="rawData" rows="5"></textarea>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label for="procesedData" class="form-label">Resultado:</label>
+                        <textarea class="form-control night" name="procesedData" id="procesedData" rows="14"
+                            readonly></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+<script>
+    const selectBundle = document.getElementById('bundle')
+    const selectAction = document.getElementById('action')
+
+    const selectDataType = document.getElementById('dataType')
+    const selectComplement = document.getElementById('complement')
+    const inputDateTime = document.getElementById('dateTime')
+    const inputUuid = document.getElementById('uuid')
+    const inputGeolocation = document.getElementById('geolocation')
+    const inputRequestSecret = document.getElementById('requestSecret')
+
+    const inputCompositeKey = document.getElementById('compositeKey')
+    const textAreaRawData = document.getElementById('rawData')
+    const textAreaProcesed = document.getElementById('procesedData')
+
+    function setTableOptions() {
+        let optionsBundle = ''
+        for (let i = 0; i < tableData.length; i++) {
+            let item = tableData[i]
+            optionsBundle += `<option value="${i}"  ${i === 0 ? 'selected' : ''}>${item.bundle} (${item.id})</option>`
+        }
+        selectBundle.innerHTML = optionsBundle
+    }
+
+    function displayFromRequestFields() {
+        let toDisplay = selectComplement.value === '0' ? 'none' : ''
+        document.querySelectorAll('.fromRequest').forEach(item => {
+            item.style.display = toDisplay
+        })
+    }
+
+    setTableOptions()
+    displayFromRequestFields()
+
+    window.addEventListener("load", (event) => {
+
+        textAreaRawData.addEventListener('change', executeUpdateEncDec)
+        textAreaRawData.addEventListener('paste', executeUpdateEncDec)
+        inputCompositeKey.addEventListener('change', executeUpdateEncDec)
+        selectComplement.addEventListener('change', () => {
+            textAreaProcesed.value = ''
+            displayFromRequestFields()
+            updateAutomaticCompositeKey()
+        })
+        selectDataType.addEventListener('change', () => updateAutomaticCompositeKey)
+        selectAction.addEventListener('change', executeUpdateEncDec)
+        selectBundle.addEventListener('change', updateAutomaticCompositeKey)
+        inputUuid.addEventListener('change', updateAutomaticCompositeKey)
+        inputGeolocation.addEventListener('change', updateAutomaticCompositeKey)
+        inputRequestSecret.addEventListener('change', updateAutomaticCompositeKey)
+        updateAutomaticCompositeKey()
+
+        function updateAutomaticCompositeKey() {
+            try {
+                let option = tableData[Number(selectBundle.value)]
+                let validateImpl = selectDataType.value === "0" ? option.id + option.keyId : option.mwId
+                if (selectComplement.value !== "0") {
+                    let cipherKey = generateCipherKey(inputDateTime.value, inputUuid.value, inputGeolocation.value)
+                    let secretKey = decriptApiRequest(inputRequestSecret.value, cipherKey)
+                    let midlewareKey = decriptApiRequest(inputRequestSecret.value, cipherKey)
+                    midlewareKey = getSaltMdlw(midlewareKey, inputDateTime.value)
+                    validateImpl = selectDataType.value === "0" ? (option.id + secretKey) : midlewareKey
+                }
+                inputCompositeKey.value = validateImpl
+                executeUpdateEncDec()
+            } catch (e) {
+                inputCompositeKey.value = e?.message || e
+            }
+        }
+
+        function executeUpdateEncDec() {
+            try {
+                let rawData = textAreaRawData.value
+                rawData = rawData.replaceAll("\n", "");
+                rawData = rawData.replaceAll("\r", "");
+                rawData = rawData.replaceAll(` `, '')
+                textAreaRawData.value = rawData
+                let actionFunction = selectAction.value === "0" ? encriptApiRequest : decriptApiRequest
+                if (rawData) {
+                    textAreaProcesed.value = tryPrettify(actionFunction(rawData, inputCompositeKey.value))
+                }
+            } catch (e) {
+                textAreaProcesed.value = e?.message || e
+            }
+        }
+
+        function tryPrettify(information) {
+            try {
+                let json = JSON.parse(information)
+                return JSON.stringify(json, undefined, 4)
+            } catch (e) {
+                return information
+            }
+        }
+
+
+        /**
+         * secure
+         * */
+        function encriptApiRequest(apiRequest, cipherKey) {
+            let wordArray = createWordArray(digestString(cipherKey))
+            let srcs = CryptoJS.enc.Utf8.parse(apiRequest);
+            let encrypted = CryptoJS.AES.encrypt(srcs, wordArray, { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.Pkcs7 });
+            return encrypted.toString();
+        }
+
+        function decriptApiRequest(apiResponse, cipherKey) {
+            console.log(cipherKey)
+            let wordArray = createWordArray(digestString(cipherKey))
+            let information = CryptoJS.AES.decrypt(apiResponse, wordArray, { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.Pkcs7 });
+            return information.toString(CryptoJS.enc.Utf8);
+        }
+
+        function generateCipherKey(dateTime, uuid, geoLocation) {
+            if (!dateTime || !uuid || !geoLocation) {
+                throw new Error('Faltan datos del request para completar la llave')
+            }
+            let base = dateTime + uuid + geoLocation
+            base = base.split('').reverse().join('')
+            base = digestString(base)
+            return base.substring(base.length - 32)
+        }
+
+        function getSaltMdlw(basePass, dateString) {
+            let mainDate = dateString.split(' ')[0]
+            let numberDate = Number(mainDate.split('-').join(''))
+            let splitData = Array.from(basePass)
+            let startChar = splitData[0].charCodeAt(0)
+            let middleChar = splitData[splitData.length / 2].charCodeAt(0)
+            let lastChar = splitData[splitData.length - 1].charCodeAt(0)
+            let saltNumber = emulateJavaInt(numberDate * startChar);
+            saltNumber = emulateJavaInt(saltNumber * middleChar);
+            saltNumber = emulateJavaInt(saltNumber * lastChar);
+            let baseSaltStr = Array.from(String(saltNumber));
+            let reversePass = basePass.split('').reverse()
+            let finalData = ''
+            for (let i = 0; i < baseSaltStr.length; i++) {
+                finalData += baseSaltStr[i]
+                finalData += reversePass[i]
+            }
+            return finalData
+        }
+
+        function digestString(clearText) {
+            return CryptoJS.SHA256(clearText).toString(CryptoJS.enc.Hex);
+        }
+
+        function createWordArray(keyString) {
+            let wordArray = [];
+            const lengthArray = 16
+            let utf8Encode = new TextEncoder();
+            let data = utf8Encode.encode(keyString)
+            //the backend fill the key's array to 16 positions
+            if (data.length < lengthArray) {
+                data = [...data, ...Array(lengthArray - data.length).fill(0)]
+            }
+            if (data.length > lengthArray) {
+                data = data.slice(0, lengthArray)
+            }
+            //manually get the word, replacing normal CryptoJS.enc.Utf8.parse
+            for (let i = 0; i < data.length; i++) {
+                wordArray[(i / 4) | 0] |= data[i] << (24 - 8 * i);
+            }
+            return CryptoJS.lib.WordArray.create(wordArray, data.length);
+        }
+    });
+
+    function emulateJavaInt(value = 0) {
+        const MAX_JAVA_INT_VAL = 2147483647
+        const MIN_JAVA_INT_VAL = -2147483648
+        switch (true) {
+            case value > MAX_JAVA_INT_VAL:
+                return overflowJavaInt(value)
+            case value < MIN_JAVA_INT_VAL:
+                return overflowJavaInt(value * -1) * -1
+            default:
+                return value
+        }
+    }
+
+    function overflowJavaInt(data = 0) {
+        let binary32 = (data >>> 0).toString(2);
+        let dataVal = Array.from(binary32.substring(binary32.length - 32))
+        if (dataVal.length < 32) {
+            return parseInt(dataVal.join(''), 2)
+        }
+        let numberSign = dataVal.shift()
+        let firstOneFound = false
+        for (let i = dataVal.length - 1; i >= 0; i--) {
+            if (firstOneFound) {
+                dataVal[i] = dataVal[i] === '1' ? '0' : '1'
+            } else {
+                firstOneFound = dataVal[i] === '1'
+            }
+        }
+        let finalValue = parseInt(dataVal.join(''), 2)
+        return finalValue * (numberSign === '1' ? -1 : 1)
+    }
+</script>
+
+</html>
